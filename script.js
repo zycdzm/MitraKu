@@ -4,11 +4,16 @@ const jt=n=>'Rp'+(n/1e6).toFixed(2).replace('.',',')+' jt';
 const G=[{n:'Grade A',c:'#16a34a',p:25000,w:120},{n:'Grade B',c:'#f59e0b',p:20000,w:60},{n:'Grade C',c:'#0ea5e9',p:17000,w:25},{n:'Afkir',c:'#f43f5e',p:8000,w:8}];
 const kg=()=>G.reduce((s,g)=>s+g.w,0),tot=()=>G.reduce((s,g)=>s+g.w*g.p,0);
 const SL=['06.00–08.00','08.00–10.00','14.00–16.00'];
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ACC={'081234567890':'Pak Hasan'};
+try{Object.assign(ACC,JSON.parse(localStorage.getItem('mk_acc')||'{}'))}catch(e){}
+const persist=()=>{try{const o={};for(const k in ACC)if(k!='081234567890')o[k]=ACC[k];localStorage.setItem('mk_acc',JSON.stringify(o))}catch(e){}};
+let user={name:'Pak Hasan'},pend=null;
 let tab='home',slot=1,tray=40,end=Date.now()+44.3*36e5,tm;
 const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tm);tm=setTimeout(()=>t.classList.remove('on'),2200)};
 const row=(a,b)=>`<div class="row"><span>${a}</span><span>${b}</span></div>`;
 
-const home=()=>`<div class="hi">Halo, Pak Hasan 👋</div>
+const home=()=>`<div class="hi">Halo, ${esc(user.name)} 👋</div>
 <div class="hero"><small>Pencairan dana kamu</small><div class="big" id="sla">--:--:--</div><div class="bar"><i id="bar"></i></div><small>Batas pembayaran 3×24 jam sejak penimbangan</small></div>
 <div class="stats"><div class="tile tg"><small>Setoran</small><b>${kg()} kg</b></div><div class="tile ty"><small>Nilai</small><b>${jt(tot())}</b></div><div class="tile ts"><small>Harga A/kg</small><b>${rp(G[0].p)}</b></div></div>
 <h3>Riwayat setoran</h3><div class="card">${row('<b>30 Sep</b> · '+kg()+' kg','<span class="b by">Menunggu transfer</span>')+row('<b>23 Sep</b> · 198 kg','<span class="b bg">Lunas</span>')+row('<b>16 Sep</b> · 205 kg','<span class="b bg">Lunas</span>')}</div>`;
@@ -28,15 +33,23 @@ const grading=()=>`<h2>Hasil grading & harga</h2><div class="card">${G.map(g=>`<
 const qrsvg=()=>{let c='';for(let i=0;i<21;i++)for(let j=0;j<21;j++){const f=(i<7&&j<7)||(i<7&&j>13)||(i>13&&j<7),a=i%14,b=j%14;if(f?(a==0||a==6||b==0||b==6||(a>1&&a<5&&b>1&&b<5)):(i*7+j*13+i*j)%3==0)c+=`<rect x="${j}" y="${i}" width="1" height="1"/>`}return`<svg viewBox="0 0 21 21" width="150" fill="currentColor">${c}</svg>`};
 const qr=()=>`<h2>Keterlacakan batch</h2><div class="card c"><div class="qrbox">${qrsvg()}</div><br><b>BT-0929-017</b><p class="mut">Pembeli scan kode ini untuk melihat asal telur (pratinjau, QR asli dibuat backend)</p></div>
 <div class="card"><label style="margin-top:0">Cek kode batch</label><input id="bc" value="BT-0929-017"><button class="btn" style="margin-top:12px" onclick="trace()">Lacak</button><div id="tr"></div></div>`;
-const trace=()=>{$('#tr').innerHTML=$('#bc').value.trim().toUpperCase()=='BT-0929-017'?`<ul class="tl">${[['Panen','29 Sep · Kandang Pak Hasan, Sidrap'],['Dijemput','30 Sep · 06.40'],['Grading','Grade A · 120 kg'],['Dikemas','Tray berlabel QR'],['Dikirim','Ke pembeli institusi']].map(s=>`<li><b>${s[0]}</b><div class="mut" style="margin:0">${s[1]}</div></li>`).join('')}</ul>`:'<p class="mut">Kode tidak ditemukan.</p>'};
+const trace=()=>{$('#tr').innerHTML=$('#bc').value.trim().toUpperCase()=='BT-0929-017'?`<ul class="tl">${[['Panen','29 Sep · Kandang '+esc(user.name)+', Sidrap'],['Dijemput','30 Sep · 06.40'],['Grading','Grade A · 120 kg'],['Dikemas','Tray berlabel QR'],['Dikirim','Ke pembeli institusi']].map(s=>`<li><b>${s[0]}</b><div class="mut" style="margin:0">${s[1]}</div></li>`).join('')}</ul>`:'<p class="mut">Kode tidak ditemukan.</p>'};
 
 const T=[['home','🏠','Beranda',home],['panen','🥚','Panen',panen],['grading','⚖️','Grading',grading],['qr','🔎','Lacak',qr]];
 const show=t=>{tab=t;$('#main').innerHTML=T.find(x=>x[0]==t)[3]();document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==t));if(t=='qr')trace();scrollTo(0,0);tick()};
 const tick=()=>{const e=$('#sla');if(!e)return;const ms=Math.max(0,end-Date.now()),s=ms/1e3|0;e.textContent=[s/3600|0,(s/60|0)%60,s%60].map(x=>String(x).padStart(2,'0')).join(':');$('#bar').style.width=(100-ms/2592e5*100)+'%'};
 setInterval(tick,1000);
 
-const app=()=>{$('#app').innerHTML=`<header class="top"><div class="in"><span class="brand">🥚 MitraKu</span><button onclick="login()" style="border:1px solid var(--line);background:var(--card);border-radius:10px;padding:6px 12px">Keluar</button></div></header><main class="wrap" id="main"></main><nav><div class="in">${T.map(x=>`<button data-t="${x[0]}" onclick="show('${x[0]}')"><span>${x[1]}</span>${x[2]}</button>`).join('')}</div></nav>`;show('home')};
-const login=()=>{$('#app').innerHTML=`<div class="auth"><div class="authbox"><h1>🥚 MitraKu</h1><p>Harga adil, bayar maksimal 3×24 jam.</p><section class="card" id="lg"><label style="margin-top:0">Nomor HP</label><input value="0812 3456 7890"><button class="btn" onclick="otp()">Kirim OTP</button></section></div></div>`};
-const otp=()=>{$('#lg').innerHTML=`<label style="margin-top:0">Kode OTP (demo: isi 6 angka apa saja)</label><input id="ot" inputmode="numeric" maxlength="6" placeholder="••••••"><button class="btn" onclick="verify()">Verifikasi & masuk</button>`};
-const verify=()=>$('#ot').value.length==6?app():toast('Masukkan 6 angka OTP');
+const app=()=>{$('#app').innerHTML=`<header class="top"><div class="in"><span class="brand">🥚 MitraKu</span><span style="display:flex;align-items:center;gap:8px"><span class="av">${esc(user.name[0].toUpperCase())}</span><button onclick="login()" style="border:1px solid var(--line);background:var(--card);border-radius:10px;padding:6px 12px">Keluar</button></span></div></header><main class="wrap" id="main"></main><nav><div class="in">${T.map(x=>`<button data-t="${x[0]}" onclick="show('${x[0]}')"><span>${x[1]}</span>${x[2]}</button>`).join('')}</div></nav>`;show('home')};
+const norm=p=>p.replace(/\D/g,'');
+const ig=(inner,foot)=>`<div class="ig"><div class="igc"><div class="logo"><span>🥚</span> <b>MitraKu</b></div>${inner}</div><div class="igc igf">${foot}</div></div>`;
+const login=()=>{$('#app').innerHTML=ig(`<p class="tag">Masuk tanpa password. Kode OTP dikirim ke nomor HP kamu.</p><input id="hp" inputmode="tel" placeholder="Nomor HP"><button class="btn" onclick="kirimOtp('masuk')">Masuk</button><div class="or">ATAU</div><p class="c" style="margin:0"><a onclick="$('#hp').value='0812 3456 7890'">Isi nomor akun demo</a></p>`,`Belum punya akun? <a onclick="daftar()">Daftar</a>`)};
+const daftar=()=>{$('#app').innerHTML=ig(`<p class="tag">Daftar untuk bergabung sebagai mitra peternak.</p><input id="nm" placeholder="Nama lengkap"><input id="hp" inputmode="tel" placeholder="Nomor HP"><button class="btn" onclick="kirimOtp('daftar')">Daftar</button>`,`Sudah punya akun? <a onclick="login()">Masuk</a>`)};
+const kirimOtp=m=>{const raw=$('#hp').value,p=norm(raw),n=m=='daftar'?$('#nm').value.trim():ACC[p];
+if(m=='daftar'&&!n)return toast('Isi nama lengkap dulu');
+if(p.length<9)return toast('Nomor HP tidak valid');
+if(m=='masuk'&&!n)return toast('Nomor belum terdaftar. Silakan daftar dulu.');
+if(m=='daftar'&&ACC[p])return toast('Nomor sudah terdaftar. Silakan masuk.');
+pend={m,p,n};$('#app').innerHTML=ig(`<p class="tag">Kode OTP dikirim ke ${esc(raw)}</p><input id="ot" inputmode="numeric" maxlength="6" placeholder="Kode OTP (demo: 6 angka apa saja)"><button class="btn" onclick="verify()">Verifikasi</button>`,`<a onclick="${m=='daftar'?'daftar':'login'}()">← Kembali</a>`)};
+const verify=()=>{if($('#ot').value.length!=6)return toast('Masukkan 6 angka OTP');if(pend.m=='daftar'){ACC[pend.p]=pend.n;persist()}user.name=pend.n;app()};
 login();
